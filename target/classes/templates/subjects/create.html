@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><title>Form Môn học</title></head>
+<body>
+<h1 th:text="${subject.id == null} ? 'Thêm môn học' : 'Sửa môn học'"></h1>
+<form th:action="${subject.id == null} ? @{/subjects/create} : @{'/subjects/update/' + ${subject.id}}" th:object="${subject}" method="post">
+    Mã môn: <input type="text" th:field="*{code}" /><br/>
+    Tên môn: <input type="text" th:field="*{name}" /><br/>
+    <button type="submit">Lưu</button>
+</form>
+<a href="/subjects">Quay lại</a>
+</body></html>
+<a href="/"> Về Dashboard</a>

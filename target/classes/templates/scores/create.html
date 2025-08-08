@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><title>Thêm điểm</title></head>
+<body>
+<h1>Thêm điểm</h1>
+<form th:action="@{/scores/create}" th:object="${score}" method="post">
+
+    <label>Sinh viên:</label>
+    <select th:field="*{student.id}">
+        <option value="">--Chọn sinh viên--</option>
+        <option th:each="s : ${students}" th:value="${s.id}" th:text="${s.name}"></option>
+    </select><br/><br/>
+
+    <label>Môn học:</label>
+    <select th:field="*{subject.id}">
+        <option value="">--Chọn môn học--</option>
+        <option th:each="s : ${subjects}" th:value="${s.id}" th:text="${s.name}"></option>
+    </select><br/><br/>
+
+    <label>Điểm:</label>
+    <input type="number" th:field="*{value}" step="0.01" required /><br/><br/>
+
+    <button type="submit">Lưu</button>
+</form>
+|
+<a href="/scores">Quay lại danh sách điểm</a>
+</body>
+</html>
+
+<a href="/"> Về Dashboard</a>

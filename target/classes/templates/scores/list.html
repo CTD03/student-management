@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><title>Scores List</title></head>
+<body>
+<h1>Danh sách điểm</h1>
+<a href="/scores/new">Thêm điểm</a>
+<table border="1">
+<tr><th>ID</th><th>Sinh viên</th><th>Môn học</th><th>Điểm</th><th>Hành động</th></tr>
+<tr th:each="score : ${scores}">
+    <td th:text="${score.id}"></td>
+    <td th:text="${score.student.name}"></td>
+    <td th:text="${score.subject.name}"></td>
+    <td th:text="${score.value}"></td>
+    <td>
+        <a th:href="@{'/scores/edit/' + ${score.id}}">Sửa</a> |
+        <a th:href="@{'/scores/delete/' + ${score.id}}">Xóa</a>
+    </td>
+</tr>
+</table>
+</body></html>
+<a href="/"> Về Dashboard</a>

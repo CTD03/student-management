@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><title>Form Điểm</title></head>
+<body>
+<h1 th:text="${score.id == null} ? 'Thêm điểm' : 'Sửa điểm'"></h1>
+<form th:action="${score.id == null} ? @{/scores/create} : @{'/scores/update/' + ${score.id}}" th:object="${score}" method="post">
+    Sinh viên:
+    <select th:field="*{student}">
+        <option th:each="s : ${students}" th:value="${s}" th:text="${s.name}"></option>
+    </select><br/>
+    Môn học:
+    <select th:field="*{subject}">
+        <option th:each="s : ${subjects}" th:value="${s}" th:text="${s.name}"></option>
+    </select><br/>
+    Điểm: <input type="number" step="0.01" th:field="*{value}" /><br/>
+    <button type="submit">Lưu</button>
+</form>
+<a href="/scores">Quay lại</a>
+</body></html>
+<a href="/"> Về Dashboard</a>
