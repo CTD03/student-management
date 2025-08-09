@@ -53,7 +53,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           ./mvnw -B sonar:sonar \
-            -Dsonar.projectKey=ctd03 \
+            -Dsonar.projectKey=CTD03_student-management \
             -Dsonar.organization=CTD03 \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=${SONAR_TOKEN}
@@ -64,7 +64,7 @@ jobs:
         run: |
           # install jq if not present
           if ! command -v jq >/dev/null 2>&1; then sudo apt-get update && sudo apt-get install -y jq; fi
-          PROJECT_KEY="ctd03"
+          PROJECT_KEY="CTD03_student-management"
           for i in {1..30}; do
             status=$(curl -s -u "${SONAR_TOKEN}:" "https://sonarcloud.io/api/qualitygates/project_status?projectKey=${PROJECT_KEY}" | jq -r '.projectStatus.status')
             echo "SonarCloud Quality Gate status: $status"
@@ -128,5 +128,6 @@ jobs:
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
-          payload="{\"content\": \":rocket: Deploy started for **${{ github.repository }}** to Render (service: srv-${{ secrets.RENDER_SERVICE_ID }})\\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
-          curl -s -H "Content-Type: application/json" -X POST -d "$payload" "$DISCORD_WEBHOOK_URL"
+          payload="{\"content\": \":x: Build or security checks failed for **CTD03/student-management** on branch \`${GITHUB_REF_NAME}\`\nRun: https://github.com/CTD03/student-management/actions/runs/${GITHUB_RUN_ID}\nSonar: https://sonarcloud.io/dashboard?id=your_org_student-management\"}"
+          curl -H "Content-Type: application/json" -d "$payload" ${{ secrets.DISCORD_WEBHOOK_URL }}
+
