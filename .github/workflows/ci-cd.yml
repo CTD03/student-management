@@ -2,54 +2,60 @@ name: DevSecOps CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - main
-      - develop
-      - staging
+    branches: [main, develop, staging]
   pull_request:
-    # run on PRs too
-    branches:
-      - main
-      - develop
-      - staging
+    branches: [main, develop, staging]
 
 env:
-  STAGING_URL: https://your-staging-url.example.com  # optional
+  STAGING_URL: https://your-staging-url.example.com
   PROD_URL: https://your-prod-url.example.com
 
 jobs:
   build:
-    name: Build, SCA, SAST, Container Scan
+    name: Build Application
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
+      - run: chmod +x mvnw
+      - run: ./mvnw -B clean package -DskipTests
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: target/*.jar
 
-      - name: Export JAVA_HOME
-        run: echo "JAVA_HOME=${JAVA_HOME}" >> $GITHUB_ENV
+  sca:
+    name: SCA (Dependency Check)
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - run: chmod +x mvnw
+      - run: ./mvnw org.owasp:dependency-check-maven:check -Dformat=ALL
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: target/dependency-check-report.html
 
-      - name: Grant execute permission to mvnw
-        run: chmod +x mvnw
-
-      - name: Build with Maven (skip tests for speed; run tests if you want)
-        run: ./mvnw -B clean package -DskipTests
-
-      - name: Run Checkstyle
-        run: ./mvnw checkstyle:checkstyle || true
-        # note: keep as non-failing if you want to allow warnings; remove '|| true' to fail on checkstyle issues
-
-      - name: OWASP Dependency-Check (SCA)
-        run: ./mvnw org.owasp:dependency-check-maven:check -Dformat=ALL
-
-      # ----- SonarCloud analysis -----
-      - name: SonarCloud Scan (Maven)
-        env:
+  sast:
+    name: SAST (SonarCloud)
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - run: chmod +x mvnw
+      - env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           ./mvnw -B sonar:sonar \
@@ -58,63 +64,33 @@ jobs:
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=${SONAR_TOKEN}
 
-      - name: Wait for SonarCloud Quality Gate
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          # install jq if not present
-          if ! command -v jq >/dev/null 2>&1; then sudo apt-get update && sudo apt-get install -y jq; fi
-          PROJECT_KEY="CTD03_student-management"
-          for i in {1..30}; do
-            status=$(curl -s -u "${SONAR_TOKEN}:" "https://sonarcloud.io/api/qualitygates/project_status?projectKey=${PROJECT_KEY}" | jq -r '.projectStatus.status')
-            echo "SonarCloud Quality Gate status: $status"
-            if [ "$status" = "OK" ]; then exit 0; fi
-            if [ "$status" = "ERROR" ]; then echo "Quality Gate failed"; exit 1; fi
-            sleep 10
-          done
-          echo "Timeout waiting for SonarCloud quality gate"; exit 1
-
-      # ----- Build Docker image -----
-      - name: Build Docker Image
-        run: docker build -t student-management:latest .
-
-      - name: Scan Docker Image with Trivy
-        uses: aquasecurity/trivy-action@master
+  container-scan:
+    name: Container Scan (Trivy)
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t student-management:latest .
+      - uses: aquasecurity/trivy-action@master
         with:
           image-ref: student-management:latest
           format: table
           severity: CRITICAL,HIGH
 
-      - name: Upload security reports
-        uses: actions/upload-artifact@v4
+  dast:
+    name: DAST (OWASP ZAP)
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: zaproxy/action-baseline@v0.7.0
         with:
-          name: security-reports
-          path: |
-            target/dependency-check-report.html
-            # add other report files if generated
-
-      # Notify Discord on success of build job
-      - name: Notify Discord - Build Success
-        if: success()
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: |
-          payload="{\"content\": \"✅ Build passed for **${{ github.repository }}** on branch `${{ github.ref }}`\\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\\nSonar: https://sonarcloud.io/dashboard?id=your_org_student-management\"}"
-          curl -s -H "Content-Type: application/json" -X POST -d "$payload" "$DISCORD_WEBHOOK_URL"
-
-      # Notify Discord on failure of build job (including Sonar Quality Gate fail)
-      - name: Notify Discord - Build Failure
-        if: failure()
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: |
-          payload="{\"content\": \":x: Build or security checks failed for **${{ github.repository }}** on branch `${{ github.ref }}`\\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\\nSonar: https://sonarcloud.io/dashboard?id=your_org_student-management\"}"
-          curl -s -H "Content-Type: application/json" -X POST -d "$payload" "$DISCORD_WEBHOOK_URL"
+          target: ${{ env.STAGING_URL }}
+          cmd_options: "-a"
 
   deploy:
-    name: Deploy to Render (production)
-    needs: build
+    name: Deploy to Render
     runs-on: ubuntu-latest
+    needs: [sca, sast, container-scan, dast]
     steps:
       - name: Trigger Render Deploy
         env:
@@ -124,10 +100,17 @@ jobs:
           curl -X POST "https://api.render.com/deploy/srv-${SERVICE_ID}/deploys" \
             -H "Authorization: Bearer ${RENDER_API_KEY}" \
             -H "Accept: application/json"
-      - name: Notify Discord - Deploy Started
+
+  notify:
+    name: Notify Discord
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: always()
+    steps:
+      - name: Send Discord Notification
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
-          payload="{\"content\": \":x: Build or security checks failed for **CTD03/student-management** on branch \`${GITHUB_REF_NAME}\`\nRun: https://github.com/CTD03/student-management/actions/runs/${GITHUB_RUN_ID}\nSonar: https://sonarcloud.io/dashboard?id=your_org_student-management\"}"
-          curl -H "Content-Type: application/json" -d "$payload" ${{ secrets.DISCORD_WEBHOOK_URL }}
-
+          STATUS="${{ job.status }}"
+          payload="{\"content\": \"🚀 Pipeline finished with status: ${STATUS} for **${{ github.repository }}** on branch \`${GITHUB_REF_NAME}\`\\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\\nSonar: https://sonarcloud.io/dashboard?id=CTD03_student-management\"}"
+          curl -H "Content-Type: application/json" -X POST -d "$payload" "$DISCORD_WEBHOOK_URL"
