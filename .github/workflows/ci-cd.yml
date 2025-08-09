@@ -91,21 +91,20 @@ jobs:
         with:
           target: https://student-management-p6z0.onrender.com
           docker_name: ghcr.io/zaproxy/zaproxy:stable
-          rules_file_name: ''
-          cmd_options: '-a -J zap_report.json -w zap_report.md -r zap_report.html'
-  
-      - name: Verify reports exist
-        run: |
-          ls -l zap_report.* || echo "No report files found!"
-          mkdir -p zap_results
-          mv zap_report.* zap_results/ || echo "Move failed but continuing"
-  
-      - name: Upload ZAP Reports
+          cmd_options: '-a'
+          allow_issue_writing: false
+      
+      - name: Upload ZAP HTML Report
         uses: actions/upload-artifact@v4
         with:
-          name: zap_reports
-          path: zap_results
-
+          name: zap_html_report
+          path: report_html.html
+      
+      - name: Upload ZAP JSON Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap_json_report
+          path: report_json.json
   deploy:
     name: Deploy to Render
     runs-on: ubuntu-latest
