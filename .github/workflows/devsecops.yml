@@ -54,11 +54,25 @@ jobs:
       - env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          ./mvnw -B sonar:sonar \
-            -Dsonar.projectKey=CTD03_student-management \
-            -Dsonar.organization=ctd03 \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.login=${SONAR_TOKEN}
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            echo "Running SonarCloud in PR mode"
+            ./mvnw -B sonar:sonar \
+              -Dsonar.projectKey=CTD03_student-management \
+              -Dsonar.organization=ctd03 \
+              -Dsonar.host.url=https://sonarcloud.io \
+              -Dsonar.login=${SONAR_TOKEN} \
+              -Dsonar.pullrequest.key=${{ github.event.pull_request.number }} \
+              -Dsonar.pullrequest.branch=${{ github.head_ref }} \
+              -Dsonar.pullrequest.base=${{ github.base_ref }}
+          else
+            echo "Running SonarCloud in branch mode"
+            ./mvnw -B sonar:sonar \
+              -Dsonar.projectKey=CTD03_student-management \
+              -Dsonar.organization=ctd03 \
+              -Dsonar.host.url=https://sonarcloud.io \
+              -Dsonar.login=${SONAR_TOKEN} \
+              -Dsonar.branch.name=${GITHUB_REF_NAME}
+          fi
   container-scan:
     name: Container Scan (Trivy)
     runs-on: ubuntu-latest
