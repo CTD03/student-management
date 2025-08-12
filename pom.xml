@@ -90,6 +90,11 @@
 				    <failsOnError>false</failsOnError> <!-- Cho phép build dù có lỗi style -->
 				  </configuration>
 			</plugin>
+			<plugin>
+		      <groupId>org.sonarsource.scanner.maven</groupId>
+		      <artifactId>sonar-maven-plugin</artifactId>
+		      <version>4.0.0.4121</version> <!-- hoặc phiên bản mới nhất -->
+		    </plugin>
 		</plugins>
 	</build>
 
