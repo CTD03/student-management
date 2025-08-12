@@ -39,7 +39,6 @@ jobs:
         with:
           name: dependency-check-report
           path: target/dependency-check-report.html
-
   sast:
     name: SAST (SonarCloud)
     runs-on: ubuntu-latest
@@ -54,8 +53,7 @@ jobs:
       - env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            echo "Running SonarCloud in PR mode"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
             ./mvnw -B sonar:sonar \
               -Dsonar.projectKey=CTD03_student-management \
               -Dsonar.organization=ctd03 \
@@ -65,13 +63,12 @@ jobs:
               -Dsonar.pullrequest.branch=${{ github.head_ref }} \
               -Dsonar.pullrequest.base=${{ github.base_ref }}
           else
-            echo "Running SonarCloud in branch mode"
             ./mvnw -B sonar:sonar \
               -Dsonar.projectKey=CTD03_student-management \
               -Dsonar.organization=ctd03 \
               -Dsonar.host.url=https://sonarcloud.io \
               -Dsonar.login=${SONAR_TOKEN} \
-              -Dsonar.branch.name=${GITHUB_REF_NAME}
+              -Dsonar.branch.name=${{ github.ref_name }}
           fi
   container-scan:
     name: Container Scan (Trivy)
