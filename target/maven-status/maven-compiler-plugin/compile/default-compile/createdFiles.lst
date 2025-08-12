@@ -1,0 +1,17 @@
+com\example\studentmanagement\controller\SubjectController.class
+com\example\studentmanagement\controller\ScoreController.class
+com\example\studentmanagement\service\ScoreServiceImpl.class
+com\example\studentmanagement\service\SubjectServiceImpl.class
+com\example\studentmanagement\controller\StudentController.class
+com\example\studentmanagement\StudentManagementApplication.class
+com\example\studentmanagement\repository\ScoreRepository.class
+com\example\studentmanagement\model\Subject.class
+com\example\studentmanagement\repository\StudentRepository.class
+com\example\studentmanagement\service\SubjectService.class
+com\example\studentmanagement\model\Score.class
+com\example\studentmanagement\model\Student.class
+com\example\studentmanagement\service\ScoreService.class
+com\example\studentmanagement\repository\SubjectRepository.class
+com\example\studentmanagement\service\StudentService.class
+com\example\studentmanagement\service\StudentServiceImpl.class
+com\example\studentmanagement\controller\HomeController.class
